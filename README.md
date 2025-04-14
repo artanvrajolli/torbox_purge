@@ -1,5 +1,9 @@
 # Torbox Purge
 
+<div align="center">
+  <img src="images/torbox_purge_image_genAI.png" width="300"/>
+</div>
+
 ## Overview
 
 Torbox Purge is a Python utility designed to automatically manage and clean up stalled or slow torrents from your Torbox account using the Torbox API. It periodically checks your active torrents and deletes those that are either stalled for too long or have an excessive estimated time of arrival (ETA), helping you keep your Torbox account organized and efficient.
@@ -52,4 +56,3 @@ All actions and errors are logged to `torbox_purge.log` and printed to the conso
 - Python 3.7+
 - Torbox API access
 
-# torbox_purge
