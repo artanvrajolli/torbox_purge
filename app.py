@@ -90,6 +90,7 @@ def get_torrent_list():
         except Exception as e:
             print(f"Error getting torrent list (offset={offset}): {str(e)}")
             has_more = False
+  
     return all_torrents_data
 
 
@@ -103,6 +104,9 @@ def identify_stalled_torrents(torrents_data):
     """
     stalled_torrents = []
     for item in torrents_data['data']:
+        
+
+
         try:
             updated = datetime.strptime(item['updated_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
             now = datetime.now(timezone.utc)
@@ -110,6 +114,7 @@ def identify_stalled_torrents(torrents_data):
         except Exception as e:
             logging.error(f"Error parsing updated_at for torrent {item.get('id')}: {e}")
             continue
+    
         if (
             item['download_state'] == 'metaDL' or 
             item['download_state'] == 'stalled (no seeds)' or 
@@ -119,8 +124,9 @@ def identify_stalled_torrents(torrents_data):
             item['download_state'] == 'uploading (no peers)'
         ) and item['time_since_updated'] >= STALL_THRESHOLD:
             stalled_torrents.append(item)
-        elif item['download_state'] == 'downloading' and item['eta'] > ETA_THRESHOLD:
+        elif item['download_state'] == 'downloading' and item['time_since_updated'] > ETA_THRESHOLD:
             stalled_torrents.append(item)
+    
     return stalled_torrents
 
 
@@ -153,8 +159,6 @@ def main_task():
     print(f"Running torrent cleanup task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logging.info(f"Running torrent cleanup task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     data = get_torrent_list()
-    print(f'Total items: {len(data["data"])}')
-    logging.info(f'Total items: {len(data["data"])}')
     # Identify stalled torrents
     stalled_torrents = identify_stalled_torrents(data)
     # Print stalled torrents
@@ -162,10 +166,7 @@ def main_task():
     logging.info('Stalled items:')
     for item in stalled_torrents:
         print(item['id'], end=', ')
-    print(f'\nNumber of stalled torrents: {len(stalled_torrents)}')
-    logging.info(f'Number of stalled torrents: {len(stalled_torrents)}')
     clean_up_torrents(stalled_torrents)
-    logging.info(f"------")
 
 
 
