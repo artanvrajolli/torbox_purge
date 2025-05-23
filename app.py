@@ -30,30 +30,56 @@ stop_scheduler = threading.Event()
 if not API_TOKEN_TORBOX:
     logging.warning("API_TOKEN_TORBOX environment variable is not set. API requests will fail.")
 
-def delete_torrent(torrent_id):
+def delete_file(torrent_id,type):
     """
     Delete a torrent from the Torbox API.
     :param torrent_id: The ID of the torrent to delete.
     :return: The response from the API.
     """
-    url = "https://api.torbox.app/v1/api/torrents/controltorrent"
-    payload = json.dumps({
-        "torrent_id": torrent_id,
-        "operation": "delete",
-    })
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {API_TOKEN_TORBOX}'
-    }
-    try:
-        response = requests.post(url, headers=headers, data=payload, timeout=REQUEST_TIMEOUT)
-        return response
-    except requests.exceptions.Timeout:
-        print(f"Request to delete torrent {torrent_id} timed out after {REQUEST_TIMEOUT} seconds")
+    if type == 'torrent':
+        url = "https://api.torbox.app/v1/api/torrents/controltorrent"
+        payload = json.dumps({
+            "torrent_id": torrent_id,
+            "operation": "delete",
+        })
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {API_TOKEN_TORBOX}'
+        }
+        try:
+            response = requests.post(url, headers=headers, data=payload, timeout=REQUEST_TIMEOUT)
+            return response
+        except requests.exceptions.Timeout:
+            print(f"Request to delete torrent {torrent_id} timed out after {REQUEST_TIMEOUT} seconds")
+            return None
+        except Exception as e:
+            print(f"Error deleting torrent {torrent_id}: {str(e)}")
+            return None
+    elif type == 'webdl':
+        #{{api_base}}/{{api_version}}/api/webdl/controlwebdownload
+        url = f"https://api.torbox.app/v1/api/webdl/controlwebdownload"
+        payload = json.dumps({
+            "webdl_id": torrent_id,
+            "operation": "delete",
+        })
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {API_TOKEN_TORBOX}'
+        }
+        try:
+            response = requests.post(url, headers=headers, data=payload, timeout=REQUEST_TIMEOUT)
+            return response
+        except requests.exceptions.Timeout:
+            print(f"Request to delete webdl {torrent_id} timed out after {REQUEST_TIMEOUT} seconds")
+            return None
+        except Exception as e:
+            print(f"Error deleting webdl {torrent_id}: {str(e)}")
+            return None
+    else:
+        print(f"Invalid type: {type}")
         return None
-    except Exception as e:
-        print(f"Error deleting torrent {torrent_id}: {str(e)}")
-        return None
+            
+
 
 
 def get_torrent_list():
@@ -62,7 +88,7 @@ def get_torrent_list():
     Returns:
         dict: JSON response containing all torrents
     """
-    all_torrents_data = {'data': []}
+    all_torrents_data = []
     offset = 0
     limit = 1000
     has_more = True
@@ -79,9 +105,9 @@ def get_torrent_list():
                 break
             current_data = response.json()
             if 'data' in current_data and len(current_data['data']) > 0:
-                all_torrents_data['data'].extend(current_data['data'])
+                all_torrents_data.extend(current_data['data'])
                 offset += limit
-                print(f"Fetched {len(current_data['data'])} torrents. Total so far: {len(all_torrents_data['data'])}")
+                print(f"Fetched {len(current_data['data'])} torrents. Total so far: {len(all_torrents_data)}")
             else:
                 has_more = False
         except requests.exceptions.Timeout:
@@ -90,11 +116,57 @@ def get_torrent_list():
         except Exception as e:
             print(f"Error getting torrent list (offset={offset}): {str(e)}")
             has_more = False
-  
+    for item in all_torrents_data:
+        item['type'] = 'torrent'
+
+
     return all_torrents_data
 
 
-def identify_stalled_torrents(torrents_data):
+def get_webdl_list():
+    """
+    Fetch all webdl torrents from the API using pagination with offset
+    Returns:
+        dict: JSON response containing all webdl torrents
+    """
+    all_webdl_data = []
+    offset = 0
+    limit = 1000
+    has_more = True
+    while has_more:
+        url = f"https://api.torbox.app/v1/api/webdl/mylist?offset={offset}&limit={limit}"
+        payload = {}
+        headers = {
+            'Authorization': f'Bearer {API_TOKEN_TORBOX}'
+        }
+        try:
+            response = requests.request("GET", url, headers=headers, data=payload, timeout=REQUEST_TIMEOUT)
+            if response.status_code != 200:
+                logging.error(f"Failed to fetch webdl torrents: {response.status_code} {response.text}")
+                break
+            current_data = response.json()
+            if 'data' in current_data and len(current_data['data']) > 0:
+                all_webdl_data.extend(current_data['data'])
+                offset += limit
+                print(f"Fetched {len(current_data['data'])} webdl torrents. Total so far: {len(all_webdl_data)}")
+            else:
+                has_more = False
+        except requests.exceptions.Timeout:
+            print(f"Request to get webdl list timed out after {REQUEST_TIMEOUT} seconds (offset={offset})")
+            has_more = False
+        except Exception as e:
+            print(f"Error getting webdl list (offset={offset}): {str(e)}")
+            has_more = False
+
+    for item in all_webdl_data:
+        item['type'] = 'webdl'
+
+
+    return all_webdl_data
+        
+
+
+def identify_stalled_files(torrents_data):
     """
     Identify torrents that are stalled or have excessive ETA
     Args:
@@ -103,10 +175,7 @@ def identify_stalled_torrents(torrents_data):
         list: List of stalled torrents
     """
     stalled_torrents = []
-    for item in torrents_data['data']:
-        
-
-
+    for item in torrents_data:
         try:
             updated = datetime.strptime(item['updated_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
             now = datetime.now(timezone.utc)
@@ -126,11 +195,10 @@ def identify_stalled_torrents(torrents_data):
             stalled_torrents.append(item)
         elif item['download_state'] == 'downloading' and item['time_since_updated'] > ETA_THRESHOLD:
             stalled_torrents.append(item)
-    
     return stalled_torrents
 
 
-def clean_up_torrents(stalled_torrents):
+def clean_up_files(stalled_torrents):
     """
     Delete stalled torrents
     
@@ -139,7 +207,7 @@ def clean_up_torrents(stalled_torrents):
     """
     for item in stalled_torrents:
         torrent_id = item['id']
-        response = delete_torrent(torrent_id)
+        response = delete_file(torrent_id,item['type'])
         if response:
             print(f"Delete response for torrent {torrent_id}:")
             print(response.text)
@@ -158,15 +226,22 @@ def main_task():
     """
     print(f"Running torrent cleanup task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logging.info(f"Running torrent cleanup task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    data = get_torrent_list()
+    files_types = os.getenv('FILES_TYPES').split(',')
+    data = [] 
+    for file_type in files_types:
+        if file_type == 'torrent':
+            data.extend(get_torrent_list())
+        elif file_type == 'webdl':
+            data.extend(get_webdl_list())
+
     # Identify stalled torrents
-    stalled_torrents = identify_stalled_torrents(data)
+    stalled_torrents = identify_stalled_files(data)
     # Print stalled torrents
     print('Stalled items:')
     logging.info('Stalled items:')
     for item in stalled_torrents:
         print(item['id'], end=', ')
-    clean_up_torrents(stalled_torrents)
+    clean_up_files(stalled_torrents)
 
 
 
