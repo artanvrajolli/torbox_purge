@@ -1,7 +1,7 @@
 # Torbox Purge
 
 <div align="center">
-  <img src="images/torbox_purge_image_genAI.png" width="300"/>
+  <img src="images/work_mods.svg" width="600"/>
 </div>
 
 ## Overview
