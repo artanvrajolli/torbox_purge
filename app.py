@@ -177,11 +177,11 @@ def identify_stalled_files(torrents_data):
     stalled_torrents = []
     for item in torrents_data:
         try:
-            updated = datetime.strptime(item['updated_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+            created = datetime.strptime(item['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
             now = datetime.now(timezone.utc)
-            item['time_since_updated'] = (now - updated).total_seconds()
+            item['time_since_created'] = (now - created).total_seconds()
         except Exception as e:
-            logging.error(f"Error parsing updated_at for torrent {item.get('id')}: {e}")
+            logging.error(f"Error parsing created_at for torrent {item.get('id')}: {e}")
             continue
     
         if (
@@ -191,9 +191,9 @@ def identify_stalled_files(torrents_data):
             item['download_state'] == 'checking' or 
             item['download_state'] == 'missingFiles' or
             item['download_state'] == 'uploading (no peers)'
-        ) and item['time_since_updated'] >= STALL_THRESHOLD:
+        ) and item['time_since_created'] >= STALL_THRESHOLD:
             stalled_torrents.append(item)
-        elif item['download_state'] == 'downloading' and item['time_since_updated'] > ETA_THRESHOLD:
+        elif item['download_state'] == 'downloading' and item['time_since_created'] > ETA_THRESHOLD:
             stalled_torrents.append(item)
     return stalled_torrents
 
