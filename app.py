@@ -191,7 +191,8 @@ def identify_stalled_files(torrents_data):
             item['download_state'] == 'checking' or 
             item['download_state'] == 'missingFiles' or
             item['download_state'] == 'uploading (no peers)' or 
-            item['download_state'] == 'uploading'
+            item['download_state'] == 'uploading' or 
+            item['download_state'] == 'checking'
         ) and item['time_since_created'] >= STALL_THRESHOLD:
             stalled_torrents.append(item)
         elif item['download_state'] == 'downloading' and item['time_since_created'] > ETA_THRESHOLD:
