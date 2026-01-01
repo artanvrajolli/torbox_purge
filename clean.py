@@ -15,6 +15,17 @@ with open('stalled_files_tmp.json', 'w') as f:
     json.dump(stalledFiles, f, indent=4)
 
 
+# read back full_list_tmp.json
+with open('full_list_tmp.json', 'r') as f:
+    fullList = json.load(f)
+
+# print all unuqie download_state from full_list_tmp.json
+unique_states = set(item['download_state'] for item in fullList)
+print("Unique download states in full list:")
+for state in unique_states:
+    print(state)
+
+
 print(stalledFiles,'stalledFiles')
 for i,file in enumerate(stalledFiles):
     print(f"{i+1}/{len(stalledFiles)}",file['id'],'deleting...')

@@ -184,48 +184,41 @@ def identify_stalled_files(torrents_data):
             logging.error(f"Error parsing created_at for torrent {item.get('id')}: {e}")
             continue
     
+        state = item['download_state']
         if (
-            item['download_state'] == 'metaDL' or 
-            item['download_state'] == 'stalled (no seeds)' or 
-            item['download_state'] == 'stalledDL' or 
-            item['download_state'] == 'checking' or 
-            item['download_state'] == 'missingFiles' or
-            item['download_state'] == 'uploading (no peers)' or 
-            item['download_state'] == 'uploading' or 
-            item['download_state'] == 'checking'
+            state.startswith('uploading') or  # matches 'uploading', 'uploading (no peers)', etc.
+            state.startswith('failed') or     # matches 'failed', 'failed (Download 1Fichier)', etc.
+            state.startswith('stalled') or    # matches 'stalled (no seeds)', 'stalledDL', etc.
+            state == 'metaDL' or 
+            state == 'checking' or 
+            state == 'missingFiles' or
+            state == 'cached' or
+            state == 'reported missing' or
+            state == 'expired'
         ) and item['time_since_created'] >= STALL_THRESHOLD:
             stalled_torrents.append(item)
-        elif item['download_state'] == 'downloading' and item['time_since_created'] > ETA_THRESHOLD:
+        elif state == 'downloading' and item['time_since_created'] > ETA_THRESHOLD:
             stalled_torrents.append(item)
     return stalled_torrents
 
 
 def clean_up_files(stalled_torrents):
-    """
-    Delete stalled torrents
     
-    Args:
-        stalled_torrents (list): List of torrents to delete
-    """
-    for item in stalled_torrents:
+    total = len(stalled_torrents)
+    for idx, item in enumerate(stalled_torrents, start=1):
         torrent_id = item['id']
-        response = delete_file(torrent_id,item['type'])
+        print(f"[{idx}/{total}] Deleting {item['type']} with ID {torrent_id}...")
+        response = delete_file(torrent_id, item['type'])
         if response:
-            print(f"Delete response for torrent {torrent_id}:")
+            print(f"Delete response for {item['type']} {torrent_id}:")
             print(response.text)
-            logging.info(f"Delete response for torrent {torrent_id}: {response.text}")
-            logging.info(response.text)
+            logging.info(f"Delete response for {item['type']} {torrent_id}: {response.text}")
         else:
-            print(f"Failed to delete torrent {torrent_id}")
-            logging.error(f"Failed to delete torrent {torrent_id}")
+            print(f"Failed to delete {item['type']} {torrent_id}")
+            logging.error(f"Failed to delete {item['type']} {torrent_id}")
         print('---')
 
-
-
 def main_task():
-    """
-    Main function that runs the torrent cleanup task
-    """
     print(f"Running torrent cleanup task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logging.info(f"Running torrent cleanup task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     files_types = os.getenv('FILES_TYPES').split(',')
