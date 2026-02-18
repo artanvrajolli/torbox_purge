@@ -10,7 +10,8 @@ import logging
 
 # Setup logging to file and console
 # Check if logs directory exists, create if not
-log_dir = os.path.join(os.getcwd(), 'logs')
+# Use LOG_DIR environment variable if set, otherwise use logs/ in current directory
+log_dir = os.getenv('LOG_DIR', os.path.join(os.getcwd(), 'logs'))
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
