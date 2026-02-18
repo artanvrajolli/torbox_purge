@@ -240,10 +240,15 @@ def main_task():
     # Identify stalled torrents
     stalled_torrents = identify_stalled_files(data)
     # Print stalled torrents
-    print('Stalled items:')
-    logging.info('Stalled items:')
-    for item in stalled_torrents:
-        print(item['id'], end=', ')
+    if stalled_torrents:
+        print('Stalled items:')
+        logging.info('Stalled items:')
+        for item in stalled_torrents:
+            print(item['id'], end=', ')
+        print()  # New line after the list
+    else:
+        print('No stalled items found.')
+        logging.info('No stalled items found.')
     clean_up_files(stalled_torrents)
 
 
