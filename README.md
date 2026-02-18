@@ -43,6 +43,33 @@ FILES_TYPES=torrent,webdl     # Comma-separated list of file types to monitor
 
 ## Installation
 
+### Option 1: Using Docker (Recommended)
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/torbox_purge.git
+   cd torbox_purge
+   ```
+
+2. Set up your `.env` file as described above.
+
+3. Build and run with Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. View logs:
+   ```bash
+   docker-compose logs -f
+   ```
+
+5. Stop the container:
+   ```bash
+   docker-compose down
+   ```
+
+### Option 2: Manual Installation
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/torbox_purge.git
@@ -58,6 +85,21 @@ FILES_TYPES=torrent,webdl     # Comma-separated list of file types to monitor
 
 ## Usage
 
+### Using Docker
+
+Run with Docker Compose:
+```bash
+docker-compose up -d
+```
+
+Or build and run manually:
+```bash
+docker build -t torbox-purge .
+docker run -d --name torbox-purge --env-file .env -v $(pwd)/logs:/app/logs torbox-purge
+```
+
+### Manual Usage
+
 Run the script:
 ```bash
 python app.py
@@ -66,19 +108,22 @@ python app.py
 The script will:
 1. Immediately perform a cleanup of stalled downloads
 2. Continue running at the interval specified in `CHECK_INTERVAL_TORBOX`
-3. Log all actions to both console and `torbox_purge.log`
+3. Log all actions to both console and `logs/torbox_purge.log`
 
 ## Logging
 
-All actions and errors are logged to `torbox_purge.log` and printed to the console. The log includes:
+All actions and errors are logged to `logs/torbox_purge.log` and printed to the console. The log includes:
 - Timestamps for all operations
 - Details of deleted downloads
 - Any errors or issues encountered
 - API response information
 
+When using Docker, logs are persisted to the `logs/` directory on your host machine.
+
 ## Requirements
 
 - Python 3.7+
+- Docker and Docker Compose (for containerized deployment)
 - Torbox API access
 - Required Python packages (see `requirements.txt`):
   - requests

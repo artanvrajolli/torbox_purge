@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  torbox-purge:
+    build: .
+    container_name: torbox-purge
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Mount logs directory to persist logs outside container
+      - ./logs:/app/logs
+    environment:
+      - API_TOKEN_TORBOX=${API_TOKEN_TORBOX}
+      - ETA_THRESHOLD_TORBOX=${ETA_THRESHOLD_TORBOX:-604800}
+      - STALL_THRESHOLD_TORBOX=${STALL_THRESHOLD_TORBOX:-1800}
+      - CHECK_INTERVAL_TORBOX=${CHECK_INTERVAL_TORBOX:-600}
+      - FILES_TYPES=${FILES_TYPES:-torrent,webdl}
